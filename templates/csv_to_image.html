@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}CSV to Image - Fetal Health Classification{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-image"></i> CSV to Image Conversion</h1>
+        <p class="text-muted">Convert CTG CSV data into visualizations</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-upload"></i> Upload CSV File</h5>
+            </div>
+            <div class="card-body">
+                <div class="upload-area" id="uploadArea">
+                    <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #FF6B6B;"></i>
+                    <p class="mt-3 mb-0"><strong>Click to upload or drag and drop</strong></p>
+                    <p class="text-muted small">CSV files only (max 16MB)</p>
+                    <input type="file" id="csvFile" hidden accept=".csv" onchange="handleFileUpload()">
+                </div>
+                
+                <p id="fileName" class="mt-3 text-muted small"></p>
+                
+                <form method="POST" enctype="multipart/form-data" id="convertForm">
+                    <input type="file" name="file" id="hiddenFile" hidden accept=".csv">
+                    <button type="submit" class="btn btn-primary w-100 mt-3">
+                        <i class="bi bi-play-fill"></i> Convert to Image
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        {% if message %}
+            <div class="alert {% if 'Successfully' in message %}alert-success{% else %}alert-danger{% endif %}">
+                {{ message }}
+            </div>
+        {% endif %}
+        
+        {% if image_path %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-check-circle"></i> Generated Visualization</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ image_path }}" alt="Converted Image" class="img-fluid rounded">
+                    <div class="mt-3">
+                        <a href="{{ image_path }}" download class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-download"></i> Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .upload-area {
+        border: 2px dashed #FF6B6B;
+        border-radius: 8px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: #fff8f8;
+    }
+    
+    .upload-area:hover {
+        background: #ffe0e0;
+        border-color: #ff5252;
+    }
+    
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+    
+    .card-header {
+        background: #f8f9fa;
+        border-radius: 12px 12px 0 0;
+        border: none;
+    }
+</style>
+
+<script>
+document.getElementById('uploadArea').addEventListener('click', () => {
+    document.getElementById('csvFile').click();
+});
+
+document.getElementById('uploadArea').addEventListener('dragover', (e) => {
+    e.preventDefault();
+    document.getElementById('uploadArea').style.background = '#ffe0e0';
+});
+
+document.getElementById('uploadArea').addEventListener('dragleave', () => {
+    document.getElementById('uploadArea').style.background = '#fff8f8';
+});
+
+document.getElementById('uploadArea').addEventListener('drop', (e) => {
+    e.preventDefault();
+    document.getElementById('uploadArea').style.background = '#fff8f8';
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        document.getElementById('csvFile').files = files;
+        handleFileUpload();
+    }
+});
+
+function handleFileUpload() {
+    const file = document.getElementById('csvFile').files[0];
+    if (file) {
+        document.getElementById('fileName').textContent = '✓ Selected: ' + file.name;
+        document.getElementById('hiddenFile').files = document.getElementById('csvFile').files;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetal Health Prediction System</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+
+        body{
+            background: linear-gradient(to right,#0f172a,#1e293b);
+            color:white;
+            min-height:100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        .hero{
+            padding:120px 20px;
+            text-align:center;
+        }
+
+        .hero h1{
+            font-size:55px;
+            font-weight:bold;
+        }
+
+        .hero p{
+            font-size:20px;
+            color:#cbd5e1;
+            margin-top:20px;
+        }
+
+        .btn-custom{
+            padding:14px 35px;
+            border-radius:12px;
+            font-size:18px;
+            font-weight:bold;
+            margin:10px;
+        }
+
+        .card-box{
+            background:#1e293b;
+            border:none;
+            border-radius:20px;
+            padding:30px;
+            transition:0.3s;
+            height:100%;
+        }
+
+        .card-box:hover{
+            transform:translateY(-8px);
+            box-shadow:0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .feature-icon{
+            font-size:50px;
+            margin-bottom:15px;
+        }
+
+        footer{
+            text-align:center;
+            padding:20px;
+            color:#94a3b8;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+
+        <a class="navbar-brand fw-bold" href="#">
+            Fetal Health AI
+        </a>
+
+        <div class="ms-auto">
+
+            <a href="/login" class="btn btn-outline-light me-2">
+                Login
+            </a>
+
+            <a href="/dashboard" class="btn btn-primary">
+                Dashboard
+            </a>
+
+        </div>
+
+    </nav>
+
+    <!-- Hero Section -->
+
+    <section class="hero">
+
+        <h1>
+            AI Powered Fetal Health Prediction
+        </h1>
+
+        <p>
+            Upload CTG CSV files or Images and get instant fetal health predictions using Deep Learning.
+        </p>
+
+        <div class="mt-4">
+
+            <a href="/predict" class="btn btn-success btn-custom">
+                Start Prediction
+            </a>
+
+            <a href="/upload" class="btn btn-warning btn-custom">
+                Upload Data
+            </a>
+
+        </div>
+
+    </section>
+
+    <!-- Features -->
+
+    <div class="container pb-5">
+
+        <div class="row g-4">
+
+            <div class="col-md-4">
+
+                <div class="card-box text-center">
+
+                    <div class="feature-icon">
+                        📊
+                    </div>
+
+                    <h3>
+                        CSV Prediction
+                    </h3>
+
+                    <p>
+                        Upload CTG dataset CSV files and predict Normal, Suspect or Pathological conditions.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <div class="card-box text-center">
+
+                    <div class="feature-icon">
+                        🖼️
+                    </div>
+
+                    <h3>
+                        Image Prediction
+                    </h3>
+
+                    <p>
+                        Upload CTG graph images and analyze fetal health using CNN models.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <div class="card-box text-center">
+
+                    <div class="feature-icon">
+                        🤖
+                    </div>
+
+                    <h3>
+                        AI Accuracy
+                    </h3>
+
+                    <p>
+                        Track prediction accuracy, history, metrics and verification reports.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+
+    <footer>
+
+        © 2026 Fetal Health Prediction System | Developed using Flask & Deep Learning
+
+    </footer>
+
+</body>
+</html>

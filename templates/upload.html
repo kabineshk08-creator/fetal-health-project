@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Data Upload - Fetal Health Classification{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h1 class="mb-4">📁 Data & Model Upload</h1>
+            
+            {% if message %}
+                <div class="alert alert-{% if message.startswith('✅') %}success{% elif message.startswith('❌') %}danger{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message | replace('\n', '<br>') | safe }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endif %}
+
+            <!-- Upload Form -->
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Upload Files</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="upload_type" class="form-label">Select Upload Type:</label>
+                            <select class="form-select" id="upload_type" name="upload_type" required>
+                                <option value="">-- Choose an option --</option>
+                                <option value="data">📊 CSV Data (for preprocessing)</option>
+                                <option value="model">🤖 Model File (.h5, .pkl)</option>
+                                <option value="image">🖼️ CTG Image (graph-based data)</option>
+                            </select>
+                            <small class="form-text text-muted mt-2">
+                                <strong>Data:</strong> Upload CSV files for preprocessing and individual record analysis<br>
+                                <strong>Model:</strong> Upload trained model files to update system models (Admin only)<br>
+                                <strong>Image:</strong> Upload CTG charts and signal graphs (must contain graph-like structures)
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Choose File:</label>
+                            <input type="file" class="form-control" id="file" name="file" required accept=".csv,.h5,.pkl,.png,.jpg,.jpeg,.gif">
+                            <div class="form-text">
+                                Supported formats: CSV, H5, PKL, PNG, JPG, JPEG, GIF (Max: 16MB)
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-cloud-upload"></i> Upload File
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </a>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Upload Results -->
+            {% if upload_results %}
+            <div class="card shadow mt-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">✅ Upload Results</h5>
+                </div>
+                <div class="card-body">
+                    {% if upload_results.type == 'data' %}
+                        <h6>📊 Data Preprocessing Results:</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item"><strong>File:</strong> {{ upload_results.filename }}</li>
+                            <li class="list-group-item"><strong>Rows:</strong> {{ upload_results.rows }}</li>
+                            <li class="list-group-item"><strong>Columns:</strong> {{ upload_results.columns }}</li>
+                            <li class="list-group-item"><strong>Records With Individual Output:</strong> {{ upload_results.record_outputs_count }}</li>
+                        </ul>
+                        
+                        <h6 class="mt-4 mb-3">📋 Sample Record Outputs (First 5):</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th>Record ID</th>
+                                        <th>Status</th>
+                                        <th>Features (Sample)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in upload_results.sample_records %}
+                                    <tr>
+                                        <td><strong>#{{ record.record_id }}</strong></td>
+                                        <td><span class="badge bg-success">Preprocessed</span></td>
+                                        <td>
+                                            <small>
+                                                {% set items = record.features.items() | list %}
+                                                {% for key, value in items[:3] %}
+                                                    <code>{{ key }}: {{ "%.2f" | format(value) if value is number else value }}</code><br>
+                                                {% endfor %}
+                                                {% if items | length > 3 %}
+                                                    <em>... and {{ items | length - 3 }} more features</em>
+                                                {% endif %}
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                    {% elif upload_results.type == 'model' %}
+                        <h6>🤖 Model Upload Results:</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item"><strong>File:</strong> {{ upload_results.filename }}</li>
+                            <li class="list-group-item"><strong>Models Loaded:</strong> 
+                                {% for model in upload_results.models_loaded %}
+                                    <span class="badge bg-info">{{ model }}</span>
+                                {% endfor %}
+                            </li>
+                        </ul>
+
+                    {% elif upload_results.type == 'image' %}
+                        <h6>🖼️ Image Upload Results:</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item"><strong>File:</strong> {{ upload_results.filename }}</li>
+                            <li class="list-group-item"><strong>Validation:</strong> {{ upload_results.validation }}</li>
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Information Cards -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">📊 CSV Data Format</h6>
+                        </div>
+                        <div class="card-body">
+                            <small>
+                                <p>For data preprocessing:</p>
+                                <ul class="mb-0">
+                                    <li>CSV files with 21 CTG features</li>
+                                    <li>Individual records will be processed</li>
+                                    <li>Missing values handled automatically</li>
+                                    <li>Output: preprocessed data file</li>
+                                </ul>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-warning text-white">
+                            <h6 class="mb-0">🖼️ Image Guidelines</h6>
+                        </div>
+                        <div class="card-body">
+                            <small>
+                                <p>For image uploads:</p>
+                                <ul class="mb-0">
+                                    <li>Graph-based data only (CTG charts, signals)</li>
+                                    <li>Acceptable formats: PNG, JPG, JPEG, GIF</li>
+                                    <li>Validate CTG signal patterns</li>
+                                    <li>Automatic graph validation enabled</li>
+                                </ul>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .card-header {
+        border-radius: 8px 8px 0 0;
+        font-weight: bold;
+    }
+    .list-group-item {
+        border-left: 4px solid #0d6efd;
+    }
+    .badge {
+        font-size: 0.85rem;
+        padding: 5px 10px;
+    }
+</style>
+{% endblock %}

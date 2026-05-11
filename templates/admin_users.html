@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Admin Panel - Fetal Health Classification
+{% endblock %}
+
+{% block content %}
+
+<div class="row mb-4">
+
+    <div class="col-12">
+
+        <h1>
+            <i class="bi bi-gear"></i>
+            Admin Panel - User Management
+        </h1>
+
+        <p class="text-muted">
+            Manage system users and roles
+        </p>
+
+    </div>
+
+</div>
+
+<div class="card shadow">
+
+    <div class="card-header bg-dark text-white">
+
+        <h5 class="mb-0">
+            All Users
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th>ID</th>
+
+                        <th>Username</th>
+
+                        <th>Full Name</th>
+
+                        <th>Email</th>
+
+                        <th>Role</th>
+
+                        <th>Status</th>
+
+                        <th>Joined</th>
+
+                        <th width="300">
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for user in users %}
+
+                    <tr>
+
+                        <td>
+                            {{ user.id }}
+                        </td>
+
+                        <td>
+                            <strong>
+                                {{ user.username }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ user.full_name }}
+                        </td>
+
+                        <td>
+                            {{ user.email }}
+                        </td>
+
+                        <td>
+
+                            {% if user.role == 'admin' %}
+
+                                <span class="badge bg-danger">
+                                    Admin
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-info">
+                                    Doctor
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% if user.is_active %}
+
+                                <span class="badge bg-success">
+                                    Active
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-secondary">
+                                    Inactive
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+                            {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </td>
+
+                        <td>
+
+                            <!-- EDIT USER -->
+
+                            <form
+                                action="{{ url_for('edit_user', user_id=user.id) }}"
+                                method="POST"
+                                class="mb-2"
+                            >
+
+                                <input
+                                    type="text"
+                                    name="username"
+                                    value="{{ user.username }}"
+                                    class="form-control form-control-sm mb-2"
+                                    required
+                                >
+
+                                <select
+                                    name="role"
+                                    class="form-select form-select-sm mb-2"
+                                >
+
+                                    <option
+                                        value="user"
+                                        {% if user.role == 'user' %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Doctor
+                                    </option>
+
+                                    <option
+                                        value="admin"
+                                        {% if user.role == 'admin' %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Admin
+                                    </option>
+
+                                </select>
+
+                                <input
+                                    type="password"
+                                    name="password"
+                                    placeholder="New Password"
+                                    class="form-control form-control-sm mb-2"
+                                >
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-success btn-sm w-100"
+                                >
+
+                                    <i class="bi bi-check-circle"></i>
+
+                                    Update
+
+                                </button>
+
+                            </form>
+
+                            <!-- DELETE USER -->
+
+                            <form
+                               action="/admin/user/delete/{{ user.id }}"
+                                method="POST"
+                            >
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-danger btn-sm w-100"
+                                    onclick="return confirm('Delete this user?')"
+                                >
+
+                                    <i class="bi bi-trash"></i>
+
+                                    Delete
+
+                                </button>
+
+                            </form>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

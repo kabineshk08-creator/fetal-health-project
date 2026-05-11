@@ -1,0 +1,389 @@
+{% extends 'base.html' %}
+
+{% block title %}Accuracy Dashboard - Fetal Health Classification{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    
+    .stat-card.success {
+        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    }
+    
+    .stat-card.warning {
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    }
+    
+    .stat-card.info {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    }
+    
+    .stat-card.danger {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    
+    .stat-label {
+        font-size: 0.95rem;
+        opacity: 0.9;
+    }
+    
+    .accuracy-badge {
+        font-size: 1.8rem;
+        font-weight: bold;
+        padding: 15px;
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+        background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .unverified-item {
+        padding: 15px;
+        border-left: 4px solid #f39c12;
+        background-color: #fef5e7;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .unverified-item.verified {
+        border-left-color: #2ecc71;
+        background-color: #eafaf1;
+    }
+    
+    .verify-section {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+        display: none;
+    }
+    
+    .verify-section.show {
+        display: block;
+    }
+    
+    .accuracy-btn {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+        margin: 0 5px;
+    }
+    
+    .progress-group {
+        margin-bottom: 20px;
+    }
+    
+    .type-accuracy {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .type-name {
+        font-weight: 600;
+        flex: 1;
+    }
+    
+    .type-stats {
+        text-align: right;
+        flex: 1;
+    }
+    
+    .type-bar {
+        flex: 2;
+        margin: 0 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1><i class="bi bi-bullseye"></i> Accuracy Dashboard</h1>
+        <p class="text-muted">Track and verify prediction accuracy across your models</p>
+    </div>
+</div>
+
+<!-- Main Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Predictions</div>
+            <div class="stat-number">{{ stats.total_predictions }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <div class="stat-label">Verified Predictions</div>
+            <div class="stat-number">{{ stats.verified_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <div class="stat-label">Pending Verification</div>
+            <div class="stat-number">{{ stats.unverified_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <div class="stat-label">Correct Predictions</div>
+            <div class="stat-number">{{ stats.correct_count }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Overall Accuracy -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Overall Accuracy</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="accuracy-badge" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">
+                    {{ stats.overall_accuracy }}%
+                </div>
+                <p class="text-muted mb-0">
+                    <strong>{{ stats.correct_count }}</strong> out of <strong>{{ stats.verified_count }}</strong> predictions correct
+                </p>
+                {% if stats.verified_count == 0 %}
+                    <div class="alert alert-info mt-3 mb-0">
+                        <i class="bi bi-info-circle"></i> No verified predictions yet. Verify predictions to see accuracy.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Accuracy by Type -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Accuracy by Prediction Type</h5>
+            </div>
+            <div class="card-body">
+                <!-- Image Accuracy -->
+                {% if stats.image_accuracy is not none %}
+                    <div class="type-accuracy">
+                        <div class="type-name">
+                            <i class="bi bi-image"></i> Image Predictions
+                        </div>
+                        <div class="type-stats">
+                            <strong>{{ stats.image_accuracy }}%</strong>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- CSV Accuracy -->
+                {% if stats.csv_accuracy is not none %}
+                    <div class="type-accuracy">
+                        <div class="type-name">
+                            <i class="bi bi-file-earmark-spreadsheet"></i> CSV Predictions
+                        </div>
+                        <div class="type-stats">
+                            <strong>{{ stats.csv_accuracy }}%</strong>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if stats.image_accuracy is none and stats.csv_accuracy is none %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> No data available yet.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Unverified Predictions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history"></i> Pending Ground Truth Verification ({{ unverified_predictions|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if unverified_predictions %}
+                    <div id="unverified-list">
+                        {% for pred in unverified_predictions %}
+                            <div class="unverified-item" data-pred-id="{{ pred.id }}">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        {% if pred.prediction_type == 'image' %}
+                                            <span class="badge bg-warning me-2"><i class="bi bi-image"></i> Image</span>
+                                        {% else %}
+                                            <span class="badge bg-info me-2"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</span>
+                                        {% endif %}
+                                        <strong>{{ pred.file_name }}</strong>
+                                    </div>
+                                    <div class="row text-sm">
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Predicted:</small>
+                                            <div>
+                                                {% if pred.result == 'Normal' %}
+                                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> {{ pred.result }}</span>
+                                                {% elif pred.result == 'Suspect' %}
+                                                    <span class="badge bg-warning"><i class="bi bi-exclamation-triangle"></i> {{ pred.result }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger"><i class="bi bi-x-circle"></i> {{ pred.result }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Confidence:</small>
+                                            <div><strong>{{ "%.2f" | format(pred.confidence * 100) }}%</strong></div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">By User:</small>
+                                            <div>{{ pred.user.username if pred.user else 'Unknown' }}</div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Date:</small>
+                                            <div>{{ pred.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Verify Section -->
+                                    <div class="verify-section" id="verify-form-{{ pred.id }}">
+                                        <h6>Provide Ground Truth Label:</h6>
+                                        <div class="btn-group mb-3" role="group">
+                                            <button type="button" class="btn btn-outline-success accuracy-btn" 
+                                                    onclick="submitVerification({{ pred.id }}, 'Normal')">
+                                                <i class="bi bi-check-circle"></i> Normal
+                                            </button>
+                                            <button type="button" class="btn btn-outline-warning accuracy-btn" 
+                                                    onclick="submitVerification({{ pred.id }}, 'Suspect')">
+                                                <i class="bi bi-exclamation-triangle"></i> Suspect
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger accuracy-btn" 
+                                                    onclick="submitVerification({{ pred.id }}, 'Pathological')">
+                                                <i class="bi bi-x-circle"></i> Pathological
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ms-3">
+                                    <button class="btn btn-primary btn-sm" onclick="toggleVerifyForm({{ pred.id }})">
+                                        <i class="bi bi-pencil-square"></i> Verify
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-success mb-0">
+                        <i class="bi bi-check-circle"></i> <strong>Excellent!</strong> All predictions have been verified.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleVerifyForm(predId) {
+    const form = document.getElementById(`verify-form-${predId}`);
+    form.classList.toggle('show');
+}
+
+function submitVerification(predId, actualLabel) {
+    const item = document.querySelector(`[data-pred-id="${predId}"]`);
+    
+    fetch(`/api/prediction/${predId}/verify`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            actual_label: actualLabel
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update UI
+            item.classList.add('verified');
+            
+            // Build result message
+            let resultBadge = '';
+            if (data.is_correct) {
+                resultBadge = '<span class="badge bg-success ms-2"><i class="bi bi-check-circle"></i> Correct Match</span>';
+            } else {
+                resultBadge = '<span class="badge bg-danger ms-2"><i class="bi bi-x-circle"></i> Mismatch</span>';
+            }
+            
+            // Hide form and show result
+            const verifyForm = document.getElementById(`verify-form-${predId}`);
+            verifyForm.innerHTML = `
+                <div class="alert ${data.is_correct ? 'alert-success' : 'alert-danger'} mb-0">
+                    <strong>Actual Label:</strong> ${data.actual} ${resultBadge}
+                </div>
+            `;
+            
+            // Show success toast
+            showToast(`✅ Prediction verified! ${data.accuracy_status}`, 'success');
+            
+            // Reload dashboard after 1 second
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(`❌ ${data.error}`, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Error verifying prediction', 'danger');
+    });
+}
+
+function showToast(message, type = 'info') {
+    const toastId = `toast-${Date.now()}`;
+    const toastHTML = `
+        <div id="${toastId}" class="toast" role="alert" style="position: fixed; top: 20px; right: 20px; min-width: 300px; z-index: 9999;">
+            <div class="toast-body bg-${type} text-white">
+                ${message}
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', toastHTML);
+    
+    const toastElement = document.getElementById(toastId);
+    setTimeout(() => toastElement.remove(), 3000);
+}
+
+// Initialize Bootstrap tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+
+{% endblock %}

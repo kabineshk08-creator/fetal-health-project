@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Model Metrics - Fetal Health Classification{% endblock %}
+
+{% block content %}
+<script>
+  const metricsStyles = `
+    {% if metrics.get('ann') %}
+    .ann-accuracy-bar { width: {{ (metrics.ann.accuracy * 100) | round }}% !important; }
+    .ann-precision-bar { width: {{ (metrics.ann.precision * 100) | round }}% !important; }
+    .ann-recall-bar { width: {{ (metrics.ann.recall * 100) | round }}% !important; }
+    .ann-f1-bar { width: {{ (metrics.ann.f1 * 100) | round }}% !important; }
+    {% endif %}
+    {% if metrics.get('cnn') %}
+    .cnn-accuracy-bar { width: {{ (metrics.cnn.accuracy * 100) | round }}% !important; }
+    .cnn-precision-bar { width: {{ (metrics.cnn.precision * 100) | round }}% !important; }
+    .cnn-recall-bar { width: {{ (metrics.cnn.recall * 100) | round }}% !important; }
+    .cnn-f1-bar { width: {{ (metrics.cnn.f1 * 100) | round }}% !important; }
+    {% endif %}
+  `;
+  
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = metricsStyles;
+  document.head.appendChild(styleSheet);
+</script>
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-bar-chart"></i> Model Performance Metrics</h1>
+        <p class="text-muted">View detailed model evaluation metrics</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    {% if metrics.get('ann') %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-brain"></i> ANN Model Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">Accuracy:</span>
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar bg-success ann-accuracy-bar" role="progressbar">
+                                {{ "%.2f" | format(metrics.ann.accuracy * 100) }}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Precision:</span>
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar bg-info ann-precision-bar" role="progressbar">
+                                {{ "%.2f" | format(metrics.ann.precision * 100) }}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Recall:</span>
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar bg-warning ann-recall-bar" role="progressbar">
+                                {{ "%.2f" | format(metrics.ann.recall * 100) }}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">F1-Score:</span>
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar bg-danger ann-f1-bar" role="progressbar">
+                                {{ "%.2f" | format(metrics.ann.f1 * 100) }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    
+    {% if metrics.get('cnn') %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-image"></i> CNN Model Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">Accuracy:</span>
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar bg-success cnn-accuracy-bar" role="progressbar">
+                                {{ "%.2f" | format(metrics.cnn.accuracy * 100) }}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Precision:</span>
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar bg-info cnn-precision-bar" role="progressbar">
+                                {{ "%.2f" | format(metrics.cnn.precision * 100) }}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Recall:</span>
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar bg-warning cnn-recall-bar" role="progressbar">
+                                {{ "%.2f" | format(metrics.cnn.recall * 100) }}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">F1-Score:</span>
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar bg-danger cnn-f1-bar" role="progressbar">
+                                {{ "%.2f" | format(metrics.cnn.f1 * 100) }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% if confusion_matrix_exists %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-grid-1x2"></i> Confusion Matrix</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ url_for('get_confusion_matrix') }}" alt="Confusion Matrix" class="img-fluid" style="max-height: 600px;">
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Confusion matrix will be displayed after model training.
+    </div>
+{% endif %}
+
+<style>
+    .metric-row {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        gap: 15px;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .metric-label {
+        font-weight: 600;
+    }
+</style>
+{% endblock %}

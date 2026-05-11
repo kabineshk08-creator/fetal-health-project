@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+
+{% block title %}Make Prediction - Fetal Health Classification{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-cloud-upload"></i> Make Prediction</h1>
+        <p class="text-muted">Upload CSV data or medical images for fetal health analysis</p>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="csv-tab" data-bs-toggle="tab" data-bs-target="#csv-content" type="button" role="tab">
+            <i class="bi bi-file-earmark-spreadsheet"></i> CSV Prediction
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="image-tab" data-bs-toggle="tab" data-bs-target="#image-content" type="button" role="tab">
+            <i class="bi bi-image"></i> Image Prediction
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- CSV Prediction Tab -->
+    <div class="tab-pane fade show active" id="csv-content" role="tabpanel">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-upload"></i> Upload CSV File</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="upload-area" id="csvUploadArea">
+                            <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #FF6B6B;"></i>
+                            <p class="mt-3 mb-0"><strong>Click to upload or drag and drop</strong></p>
+                            <p class="text-muted small">CSV files only (max 16MB)</p>
+                            <input type="file" id="csvFile" hidden accept=".csv" onchange="handleCSVUpload()">
+                        </div>
+                        <p id="csvFileName" class="mt-3 text-muted small" style="display: none;"></p>
+                        <button class="btn btn-primary w-100 mt-3" onclick="predictCSV()">
+                            <i class="bi bi-play-fill"></i> Analyze CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div id="csvResult" class="card" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-check-circle"></i> Prediction Result</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <h3 id="csvPrediction"></h3>
+                            <p class="text-muted">Confidence: <strong id="csvConfidence">0%</strong></p>
+                        </div>
+                        <h6>Probability Distribution:</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Normal</span>
+                                <span id="probNormal">0%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" id="probNormalBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Suspect</span>
+                                <span id="probSuspect">0%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" id="probSuspectBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Pathological</span>
+                                <span id="probPath">0%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-danger" id="probPathBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <div id="csvRowSummary" class="mt-4" style="display: none;">
+                            <h6>Row Summary</h6>
+                            <p class="mb-1">Total rows: <strong id="csvTotalRows"></strong></p>
+                            <p class="mb-1">Normal: <strong id="csvCountNormal"></strong></p>
+                            <p class="mb-1">Suspect: <strong id="csvCountSuspect"></strong></p>
+                            <p class="mb-1">Pathological: <strong id="csvCountPathological"></strong></p>
+                        </div>
+                        
+                        <div id="csvRowResults" class="table-responsive mt-4" style="display: none;">
+                            <h6>Row-level Predictions</h6>
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Row</th>
+                                        <th scope="col">Prediction</th>
+                                        <th scope="col">Confidence</th>
+                                        <th scope="col">Normal</th>
+                                        <th scope="col">Suspect</th>
+                                        <th scope="col">Pathological</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="csvRowTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="csvError" class="alert alert-danger" style="display: none;"></div>
+                <div id="csvLoading" class="alert alert-info d-none" style="display: none;">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2">Analyzing CSV...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Prediction Tab -->
+    <div class="tab-pane fade" id="image-content" role="tabpanel">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-upload"></i> Upload Image</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="upload-area" id="imageUploadArea">
+                            <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #FF6B6B;"></i>
+                            <p class="mt-3 mb-0"><strong>Click to upload or drag and drop</strong></p>
+                            <p class="text-muted small">PNG, JPG, or GIF files (max 16MB)</p>
+                            <input type="file" id="imageFile" hidden accept="image/*" onchange="handleImageUpload()">
+                        </div>
+                        <img id="imagePreview" src="" alt="Preview" class="mt-3" style="max-width: 100%; display: none;">
+                        <button class="btn btn-primary w-100 mt-3" onclick="predictImage()">
+                            <i class="bi bi-play-fill"></i> Analyze Image
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div id="imageResult" class="card" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-check-circle"></i> Prediction Result</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <h3 id="imagePrediction"></h3>
+                            <p class="text-muted">Confidence: <strong id="imageConfidence">0%</strong></p>
+                        </div>
+                        <h6>Probability Distribution:</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Normal</span>
+                                <span id="imgProbNormal">0%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" id="imgProbNormalBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Suspect</span>
+                                <span id="imgProbSuspect">0%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" id="imgProbSuspectBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Pathological</span>
+                                <span id="imgProbPath">0%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-danger" id="imgProbPathBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="imageError" class="alert alert-danger" style="display: none;"></div>
+                <div id="imageLoading" class="alert alert-info" style="display: none;">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2">Analyzing image...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .upload-area {
+        border: 2px dashed #FF6B6B;
+        border-radius: 8px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: #fff8f8;
+    }
+    
+    .upload-area:hover {
+        background: #ffe0e0;
+        border-color: #ff5252;
+    }
+    
+    .progress {
+        height: 24px;
+        border-radius: 4px;
+    }
+</style>
+
+<script>
+document.getElementById('csvUploadArea').addEventListener('click', () => document.getElementById('csvFile').click());
+document.getElementById('imageUploadArea').addEventListener('click', () => document.getElementById('imageFile').click());
+
+function handleCSVUpload() {
+    const file = document.getElementById('csvFile').files[0];
+    if (file) {
+        document.getElementById('csvFileName').textContent = '✓ ' + file.name;
+        document.getElementById('csvFileName').style.display = 'block';
+    }
+}
+
+function handleImageUpload() {
+    const file = document.getElementById('imageFile').files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('imagePreview').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function predictCSV() {
+    const file = document.getElementById('csvFile').files[0];
+    if (!file) {
+        document.getElementById('csvError').textContent = 'Please select a CSV file';
+        document.getElementById('csvError').style.display = 'block';
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    document.getElementById('csvLoading').style.display = 'block';
+    document.getElementById('csvResult').style.display = 'none';
+    document.getElementById('csvError').style.display = 'none';
+    
+    fetch('{{ url_for("predict_csv_api") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('csvLoading').style.display = 'none';
+        
+        if (data.error) {
+            document.getElementById('csvError').textContent = data.error;
+            document.getElementById('csvError').style.display = 'block';
+            return;
+        }
+        
+        // Display results
+        const pred = data.prediction;
+        const color = pred === 'Normal' ? 'success' : pred === 'Suspect' ? 'warning' : 'danger';
+        
+        document.getElementById('csvPrediction').innerHTML = `<span class="badge bg-${color}">${pred}</span>`;
+        document.getElementById('csvConfidence').textContent = (data.confidence).toFixed(2) + '%';
+        
+        const rowCounts = data.row_counts || {Normal: 0, Suspect: 0, Pathological: 0};
+        document.getElementById('csvTotalRows').textContent = data.total_rows || 0;
+        document.getElementById('csvCountNormal').textContent = rowCounts.Normal;
+        document.getElementById('csvCountSuspect').textContent = rowCounts.Suspect;
+        document.getElementById('csvCountPathological').textContent = rowCounts.Pathological;
+        document.getElementById('csvRowSummary').style.display = 'block';
+        
+        const probs = data.probabilities || {Normal: 0, Suspect: 0, Pathological: 0};
+        document.getElementById('probNormal').textContent = (probs.Normal).toFixed(2) + '%';
+        document.getElementById('probNormalBar').style.width = (probs.Normal) + '%';
+        document.getElementById('probSuspect').textContent = (probs.Suspect).toFixed(2) + '%';
+        document.getElementById('probSuspectBar').style.width = (probs.Suspect) + '%';
+        document.getElementById('probPath').textContent = (probs.Pathological).toFixed(2) + '%';
+        document.getElementById('probPathBar').style.width = (probs.Pathological) + '%';
+        
+        const tableBody = document.getElementById('csvRowTableBody');
+        tableBody.innerHTML = '';
+        if (Array.isArray(data.row_predictions)) {
+            data.row_predictions.forEach(row => {
+                const rowColor = row.prediction === 'Normal' ? 'success' : row.prediction === 'Suspect' ? 'warning' : 'danger';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.row}</td>
+                    <td><span class="badge bg-${rowColor}">${row.prediction}</span></td>
+                    <td>${(row.confidence).toFixed(2)}%</td>
+                    <td>${(row.probabilities.Normal).toFixed(2)}%</td>
+                    <td>${(row.probabilities.Suspect).toFixed(2)}%</td>
+                    <td>${(row.probabilities.Pathological).toFixed(2)}%</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+            document.getElementById('csvRowResults').style.display = 'block';
+        } else {z
+            document.getElementById('csvRowResults').style.display = 'none';
+        }
+        
+        document.getElementById('csvResult').style.display = 'block';
+    })
+    .catch(err => {
+        document.getElementById('csvLoading').style.display = 'none';
+        document.getElementById('csvError').textContent = 'Error: ' + err;
+        document.getElementById('csvError').style.display = 'block';
+    });
+}
+
+function predictImage() {
+    const file = document.getElementById('imageFile').files[0];
+    if (!file) {
+        document.getElementById('imageError').textContent = 'Please select an image';
+        document.getElementById('imageError').style.display = 'block';
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    document.getElementById('imageLoading').style.display = 'block';
+    document.getElementById('imageResult').style.display = 'none';
+    document.getElementById('imageError').style.display = 'none';
+    
+    fetch('{{ url_for("predict_image_api") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('imageLoading').style.display = 'none';
+        
+        if (data.error) {
+            document.getElementById('imageError').textContent = data.error;
+            document.getElementById('imageError').style.display = 'block';
+            return;
+        }
+        
+        // Display results
+        const pred = data.prediction;
+        const color = pred === 'Normal' ? 'success' : pred === 'Suspect' ? 'warning' : 'danger';
+        
+        document.getElementById('imagePrediction').innerHTML = `<span class="badge bg-${color}">${pred}</span>`;
+        document.getElementById('imageConfidence').textContent = (data.confidence).toFixed(2) + '%';
+        
+        const probs = data.probabilities;
+        document.getElementById('imgProbNormal').textContent = (probs.Normal).toFixed(2) + '%';
+        document.getElementById('imgProbNormalBar').style.width = (probs.Normal) + '%';
+        document.getElementById('imgProbSuspect').textContent = (probs.Suspect).toFixed(2) + '%';
+        document.getElementById('imgProbSuspectBar').style.width = (probs.Suspect) + '%';
+        document.getElementById('imgProbPath').textContent = (probs.Pathological).toFixed(2) + '%';
+        document.getElementById('imgProbPathBar').style.width = (probs.Pathological) + '%';
+        
+        document.getElementById('imageResult').style.display = 'block';
+    })
+    .catch(err => {
+        document.getElementById('imageLoading').style.display = 'none';
+        document.getElementById('imageError').textContent = 'Error: ' + err;
+        document.getElementById('imageError').style.display = 'block';
+    });
+}
+</script>
+{% endblock %}

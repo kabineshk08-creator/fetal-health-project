@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+
+{% block title %}Prediction History - Fetal Health Classification{% endblock %}
+
+{% block extra_css %}
+<style>
+    .accuracy-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .accuracy-verified {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .accuracy-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .modal-probs {
+        padding: 8px 0;
+    }
+    
+    .prob-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    
+    .prob-label {
+        flex: 0 0 100px;
+        font-weight: 500;
+    }
+    
+    .prob-bar {
+        flex: 1;
+        margin: 0 15px;
+    }
+    
+    .prob-value {
+        flex: 0 0 50px;
+        text-align: right;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-clock-history"></i> Prediction History</h1>
+        <p class="text-muted">View all your predictions, results, and accuracy verification status</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if predictions %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">Date & Time</th>
+                            <th style="width: 12%;">Type</th>
+                            <th style="width: 20%;">File Name</th>
+                            <th style="width: 13%;">Result</th>
+                            <th style="width: 12%;">Confidence</th>
+                            <th style="width: 15%;">Accuracy Status</th>
+                            <th style="width: 13%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pred in predictions %}
+                            <tr data-pred-id="{{ pred.id }}">
+                                <td class="small">{{ pred.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>
+                                    {% if pred.prediction_type == 'csv' %}
+                                        <span class="badge bg-info">
+                                            <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning">
+                                            <i class="bi bi-image"></i> Image
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ pred.file_name }}</small>
+                                </td>
+                                <td>
+                                    {% if pred.result == 'Normal' %}
+                                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Normal</span>
+                                    {% elif pred.result == 'Suspect' %}
+                                        <span class="badge bg-warning"><i class="bi bi-exclamation-triangle"></i> Suspect</span>
+                                    {% else %}
+                                        <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Pathological</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress" style="width: 60%; height: 18px; margin-right: 8px;">
+                                            <div class="progress-bar" role="progressbar" data-confidence="{{ pred.confidence }}"></div>
+                                        </div>
+                                        <small>{{ "%.1f" | format(pred.confidence * 100) }}%</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if pred.accuracy_verified %}
+                                        {% if pred.is_correct %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Verified ✓
+                                            </span>
+                                            <div class="small text-muted">
+                                                Actual: <strong>{{ pred.actual_label }}</strong>
+                                            </div>
+                                        {% else %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-x-circle"></i> Mismatch
+                                            </span>
+                                            <div class="small text-muted">
+                                                Expected: <strong>{{ pred.actual_label }}</strong>
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="bi bi-clock"></i> Pending
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            data-pred-id="{{ pred.id }}" 
+                                            data-pred-probs="{{ pred.probabilities }}" 
+                                            onclick="showDetails(this)"
+                                            title="View probability distribution">
+                                        <i class="bi bi-eye"></i> Details
+                                    </button>
+                                    {% if not pred.accuracy_verified %}
+                                        <button class="btn btn-sm btn-outline-success" 
+                                                onclick="openVerifyModal({{ pred.id }})"
+                                                title="Verify with ground truth">
+                                            <i class="bi bi-check2-square"></i> Verify
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle"></i> No predictions yet. <a href="{{ url_for('predict') }}">Make your first prediction</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-graph-up"></i> Probability Distribution</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body modal-probs">
+                <div id="modalContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Verification Modal -->
+<div class="modal fade" id="verifyModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Verify Prediction Accuracy</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Select the actual/ground truth label for this prediction:</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-success" onclick="verifyPrediction('Normal')">
+                        <i class="bi bi-check-circle"></i> Normal
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="verifyPrediction('Suspect')">
+                        <i class="bi bi-exclamation-triangle"></i> Suspect
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="verifyPrediction('Pathological')">
+                        <i class="bi bi-x-circle"></i> Pathological
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentVerifyPredId = null;
+
+// Set progress bar widths from data attributes
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.progress-bar[data-confidence]').forEach(function(bar) {
+        const confidence = parseFloat(bar.getAttribute('data-confidence'));
+        bar.style.width = (confidence * 100) + '%';
+    });
+});
+
+function showDetails(button) {
+    const probsJson = button.getAttribute('data-pred-probs');
+    let probs = {};
+    
+    if (probsJson) {
+        try {
+            probs = JSON.parse(probsJson);
+        } catch (e) {
+            probs = { 'Normal': 0, 'Suspect': 0, 'Pathological': 0 };
+        }
+    }
+    
+    let html = '';
+    const classNames = ['Normal', 'Suspect', 'Pathological'];
+    
+    for (const className of classNames) {
+        const value = probs[className] || (typeof probs[Object.keys(probs)[classNames.indexOf(className)]] !== 'undefined' 
+                      ? probs[Object.keys(probs)[classNames.indexOf(className)]] : 0);
+        const percent = (value * 100).toFixed(1);
+        
+        html += `
+            <div class="prob-item">
+                <div class="prob-label">${className}</div>
+                <div class="prob-bar">
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar" role="progressbar" style="width: ${percent}%"></div>
+                    </div>
+                </div>
+                <div class="prob-value">${percent}%</div>
+            </div>
+        `;
+    }
+    
+    document.getElementById('modalContent').innerHTML = html;
+    new bootstrap.Modal(document.getElementById('detailsModal')).show();
+}
+
+function openVerifyModal(predId) {
+    currentVerifyPredId = predId;
+    new bootstrap.Modal(document.getElementById('verifyModal')).show();
+}
+
+function verifyPrediction(actualLabel) {
+    if (!currentVerifyPredId) {
+        alert('Error: No prediction selected');
+        return;
+    }
+    
+    const predId = currentVerifyPredId;
+    
+    fetch(`/api/prediction/${predId}/verify`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            actual_label: actualLabel
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('verifyModal')).hide();
+            
+            // Reload page to show updated status
+            setTimeout(() => location.reload(), 500);
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error verifying prediction');
+    });
+}
+</script>
+{% endblock %}
